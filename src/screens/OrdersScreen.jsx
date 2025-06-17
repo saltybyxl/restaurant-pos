@@ -6,7 +6,11 @@ export default function OrdersScreen() {
   const { selectedTable, orders, dispatch } = useOrder();
   const [tip, setTip] = useState("");
 
-  const tableOrder = selectedTable ? orders[selectedTable] || [] : [];
+  const tableOrder = selectedTable
+    ? orders[selectedTable] || { items: [], tip: 0, status: "new" }
+    : { items: [] };
+
+  const items = tableOrder.items || [];
 
   const handleRemoveItem = (index) => {
     dispatch({ type: "REMOVE_ITEM", table: selectedTable, index });
@@ -19,25 +23,26 @@ export default function OrdersScreen() {
   };
 
   const handleSendToKitchen = () => {
-  const kitchenItems = tableOrder.map((item) => ({
-    name: item.name,
-    quantity: item.quantity,
-    notes: item.notes,
-  }));
+    const kitchenItems = items.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      notes: item.notes,
+    }));
 
-  const textToPrint = formatKitchenOrder(selectedTable, kitchenItems);
+    const textToPrint = formatKitchenOrder(selectedTable, kitchenItems);
+    console.log("🧾 Kitchen Print Preview:\n" + textToPrint);
 
-  console.log("🧾 Kitchen Print Preview:\n" + textToPrint);
+    dispatch({ type: "SEND_TO_KITCHEN", table: selectedTable });
 
-  alert("✅ Sent to kitchen (see console)");
-};
+    alert("✅ Sent to kitchen (see console)");
+  };
 
   const handlePrint = () => {
     alert("🖨️ Print Receipt (not implemented yet)");
   };
 
   const handleMarkAsPaid = () => {
-    if (!selectedTable || tableOrder.length === 0) return;
+    if (!selectedTable || items.length === 0) return;
 
     const confirmed = confirm("Mark this order as paid?");
     if (!confirmed) return;
@@ -52,7 +57,7 @@ export default function OrdersScreen() {
     alert("✅ Order marked as paid and saved to history");
   };
 
-  const total = tableOrder.reduce(
+  const total = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
@@ -69,11 +74,11 @@ export default function OrdersScreen() {
             Order for <span className="text-blue-600">{selectedTable}</span>
           </h2>
 
-          {tableOrder.length === 0 ? (
+          {items.length === 0 ? (
             <div className="text-gray-500 text-center">No items added yet.</div>
           ) : (
             <div className="space-y-4">
-              {tableOrder.map((item, idx) => (
+              {items.map((item, idx) => (
                 <div
                   key={idx}
                   className="bg-white rounded shadow p-3 flex justify-between items-start"

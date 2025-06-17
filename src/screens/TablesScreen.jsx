@@ -16,11 +16,36 @@ const sectionNames = {
   inside: "Inside",
 };
 
+function getMinutesAgo(startTime) {
+  if (!startTime) return null;
+  const diff = Date.now() - new Date(startTime).getTime();
+  return Math.floor(diff / 60000);
+}
+
 function DraggableTable({ table, onTableSelect }) {
   const { attributes, listeners, setNodeRef } = useDraggable({ id: table.id });
-  const { dispatch, selectedTable, editMode } = useOrder();
+  const { dispatch, selectedTable, editMode, orders } = useOrder();
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState(table.name);
+
+  const order = orders?.[table.name];
+  const status = order?.status;
+  const minutesAgo = getMinutesAgo(order?.startTime);
+
+  const getStatusColor = () => {
+    if (!status) return "bg-gray-200"; // No order
+    if (status === "new") return "bg-yellow-300";
+    if (status === "sent") return "bg-blue-300";
+    if (status === "paid") return "bg-green-300";
+    return "bg-gray-200";
+  };
+
+  const getStatusLabel = () => {
+    if (status === "new") return "📝 New";
+    if (status === "sent") return "✅ Sent";
+    if (status === "paid") return "💵 Paid";
+    return "";
+  };
 
   const style = {
     position: "absolute",
@@ -65,13 +90,19 @@ function DraggableTable({ table, onTableSelect }) {
               onTableSelect();
             }
           }}
-          className={`px-3 py-2 rounded-lg shadow text-sm relative text-center w-28 ${
-            selectedTable === table.name
-              ? "bg-blue-600 text-white"
-              : "bg-white text-gray-800"
-          }`}
+          className={`w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 flex flex-col justify-center items-center rounded-lg shadow text-sm relative text-center transition-all duration-200
+            ${getStatusColor()} text-gray-800
+            ${selectedTable === table.name ? "ring-2 ring-blue-500" : ""}
+          `}
         >
-          {table.name}
+          <div>{table.name}</div>
+          <div className="text-xs">{getStatusLabel()}</div>
+          {minutesAgo !== null && (
+            <div className="text-[10px] text-gray-600 mt-1">
+              🕒 {minutesAgo}m ago
+            </div>
+          )}
+
           {editMode && (
             <div className="absolute top-0 right-1 text-xs flex gap-1">
               <button
@@ -118,6 +149,8 @@ export default function TablesScreen({ onTableSelect }) {
     useSensor(MouseSensor)
   );
 
+  const snapToGrid = (value, step = 10) => Math.round(value / step) * step;
+
   const handleDragEnd = (event) => {
     setActiveId(null);
     if (!editMode) return;
@@ -127,8 +160,8 @@ export default function TablesScreen({ onTableSelect }) {
     const table = tables.find((t) => t.id === id);
     if (!table) return;
 
-    const updatedX = table.x + delta.x;
-    const updatedY = table.y + delta.y;
+    const updatedX = snapToGrid(table.x + delta.x);
+    const updatedY = snapToGrid(table.y + delta.y);
 
     dispatch({ type: "MOVE_TABLE", id, x: updatedX, y: updatedY });
   };
@@ -177,7 +210,10 @@ export default function TablesScreen({ onTableSelect }) {
         onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
       >
-        <div className="relative w-full h-[60vh] bg-gray-100 rounded border overflow-hidden">
+        <div
+          className="relative w-full h-[60vh] bg-gray-100 rounded border overflow-hidden"
+          style={editMode ? { touchAction: "none" } : {}}
+        >
           {tables.map((table) => (
             <DraggableTable
               key={table.id}
@@ -190,7 +226,10 @@ export default function TablesScreen({ onTableSelect }) {
         {/* Drag Preview */}
         <DragOverlay>
           {activeTable ? (
-            <div className="px-3 py-2 rounded-lg shadow text-sm w-28 bg-blue-200 text-center">
+            <div
+              className="flex items-center justify-center rounded-lg shadow text-sm bg-blue-200 text-center text-gray-800"
+              style={{ width: "80px", height: "80px" }}
+            >
               {activeTable.name}
             </div>
           ) : null}

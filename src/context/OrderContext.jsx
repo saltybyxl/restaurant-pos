@@ -17,7 +17,7 @@ const getInitialState = () => {
           inside: [{ id: "i1", name: "IN1", x: 0, y: 0 }],
         },
     orders: savedOrders ? JSON.parse(savedOrders) : {},
-    orderHistory: savedHistory ? JSON.parse(savedHistory) : [], // ✅ new
+    orderHistory: savedHistory ? JSON.parse(savedHistory) : [],
   };
 };
 
@@ -105,26 +105,47 @@ function orderReducer(state, action) {
 
     case "ADD_ITEM": {
       const { table, item } = action;
-      const currentOrder = state.orders[table] || [];
+      let existing = state.orders[table];
+
+      // If it's still an array (from old save), upgrade it
+      if (!existing || Array.isArray(existing)) {
+        existing = {
+          items: Array.isArray(existing) ? existing : [],
+          tip: 0,
+          status: "new",
+          startTime: new Date().toISOString(),
+        };
+      }
+
+      const updated = {
+        ...existing,
+        items: [...existing.items, item],
+        status: "new",
+        startTime: existing.startTime || new Date().toISOString(),
+      };
 
       return {
         ...state,
         orders: {
           ...state.orders,
-          [table]: [...currentOrder, item],
+          [table]: updated,
         },
       };
     }
 
     case "REMOVE_ITEM": {
       const { table, index } = action;
-      const updated = [...(state.orders[table] || [])];
-      updated.splice(index, 1);
+      const existing = state.orders[table];
+      if (!existing) return state;
+
+      const newItems = [...existing.items];
+      newItems.splice(index, 1);
+
       return {
         ...state,
         orders: {
           ...state.orders,
-          [table]: updated,
+          [table]: { ...existing, items: newItems },
         },
       };
     }
@@ -139,18 +160,32 @@ function orderReducer(state, action) {
       };
     }
 
-    // ✅ MARK AS PAID (save to history + clear)
+    case "SEND_TO_KITCHEN": {
+      const { table } = action;
+      const current = state.orders[table];
+      if (!current) return state;
+      return {
+        ...state,
+        orders: {
+          ...state.orders,
+          [table]: { ...current, status: "sent" },
+        },
+      };
+    }
+
     case "MARK_AS_PAID": {
       const { table, tip } = action;
-      const currentOrder = state.orders[table] || [];
-      const total = currentOrder.reduce(
+      const current = state.orders[table];
+      if (!current) return state;
+
+      const total = current.items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
       );
 
       const entry = {
         table,
-        items: currentOrder,
+        items: current.items,
         total,
         tip: tip || 0,
         date: new Date().toISOString(),
