@@ -101,13 +101,10 @@ function orderReducer(state, action) {
       };
     }
 
-    // === ORDER ACTIONS ===
-
     case "ADD_ITEM": {
       const { table, item } = action;
       let existing = state.orders[table];
 
-      // If it's still an array (from old save), upgrade it
       if (!existing || Array.isArray(existing)) {
         existing = {
           items: Array.isArray(existing) ? existing : [],
@@ -189,6 +186,8 @@ function orderReducer(state, action) {
         total,
         tip: tip || 0,
         date: new Date().toISOString(),
+        status: "paid",
+        startTime: current.startTime || null,
       };
 
       const updatedOrders = { ...state.orders };

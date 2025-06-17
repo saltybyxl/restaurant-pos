@@ -33,7 +33,7 @@ function DraggableTable({ table, onTableSelect }) {
   const minutesAgo = getMinutesAgo(order?.startTime);
 
   const getStatusColor = () => {
-    if (!status) return "bg-gray-200"; // No order
+    if (!status) return "bg-gray-200";
     if (status === "new") return "bg-yellow-300";
     if (status === "sent") return "bg-blue-300";
     if (status === "paid") return "bg-green-300";
@@ -102,7 +102,6 @@ function DraggableTable({ table, onTableSelect }) {
               🕒 {minutesAgo}m ago
             </div>
           )}
-
           {editMode && (
             <div className="absolute top-0 right-1 text-xs flex gap-1">
               <button
@@ -135,7 +134,6 @@ export default function TablesScreen({ onTableSelect }) {
   const { activeSection, dispatch, tableLayout, selectedTable, editMode } =
     useOrder();
   const tables = tableLayout[activeSection];
-
   const [activeId, setActiveId] = useState(null);
   const activeTable = tables.find((t) => t.id === activeId);
 
@@ -203,7 +201,6 @@ export default function TablesScreen({ onTableSelect }) {
         </button>
       </div>
 
-      {/* Table Canvas */}
       <DndContext
         sensors={sensors}
         onDragStart={(event) => setActiveId(event.active.id)}
@@ -223,7 +220,6 @@ export default function TablesScreen({ onTableSelect }) {
           ))}
         </div>
 
-        {/* Drag Preview */}
         <DragOverlay>
           {activeTable ? (
             <div
@@ -236,7 +232,6 @@ export default function TablesScreen({ onTableSelect }) {
         </DragOverlay>
       </DndContext>
 
-      {/* Selected Display */}
       {selectedTable && (
         <div className="mt-4 text-center text-blue-600 font-medium">
           ✅ Selected: {selectedTable}

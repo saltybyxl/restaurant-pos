@@ -1,6 +1,8 @@
-// src/components/TabNavigation.jsx
+import { useOrder } from "../context/OrderContext";
 
 export default function TabNavigation({ tab, setTab }) {
+  const { editMode } = useOrder();
+
   const tabs = [
     { key: "tables", label: "🪑 Tables" },
     { key: "menu", label: "📋 Menu" },
@@ -9,13 +11,18 @@ export default function TabNavigation({ tab, setTab }) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow flex justify-around p-2 z-50">
+    <div
+      className="fixed bottom-0 left-0 right-0 bg-white border-t shadow flex justify-around p-2 z-50"
+      style={editMode ? { pointerEvents: "none", opacity: 0.4 } : {}}
+    >
       {tabs.map((t) => (
         <button
           key={t.key}
           onClick={() => setTab(t.key)}
           className={`text-sm px-3 py-1 rounded-full transition-all font-medium ${
-            tab === t.key ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"
+            tab === t.key
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-800"
           }`}
         >
           {t.label}
