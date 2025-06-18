@@ -4,20 +4,20 @@ const getInitialState = () => {
   const savedLayout = localStorage.getItem("tableLayout");
   const savedOrders = localStorage.getItem("orders");
   const savedHistory = localStorage.getItem("orderHistory");
+  const savedReports = localStorage.getItem("reportData");
 
   return {
     selectedTable: null,
     activeSection: "restaurant",
     editMode: false,
-    tableLayout: savedLayout
-      ? JSON.parse(savedLayout)
-      : {
-          restaurant: [{ id: "r1", name: "Table 1", x: 0, y: 0 }],
-          kiosk: [{ id: "k1", name: "Table 101", x: 0, y: 0 }],
-          inside: [{ id: "i1", name: "IN1", x: 0, y: 0 }],
-        },
+    tableLayout: savedLayout ? JSON.parse(savedLayout) : {
+      restaurant: [{ id: "r1", name: "Table 1", x: 0, y: 0 }],
+      kiosk: [{ id: "k1", name: "Table 101", x: 0, y: 0 }],
+      inside: [{ id: "i1", name: "IN1", x: 0, y: 0 }],
+    },
     orders: savedOrders ? JSON.parse(savedOrders) : {},
     orderHistory: savedHistory ? JSON.parse(savedHistory) : [],
+    reportData: savedReports ? JSON.parse(savedReports) : [],
   };
 };
 
@@ -60,9 +60,7 @@ function orderReducer(state, action) {
 
     case "REMOVE_TABLE": {
       const section = state.activeSection;
-      const updated = state.tableLayout[section].filter(
-        (t) => t.id !== action.id
-      );
+      const updated = state.tableLayout[section].filter((t) => t.id !== action.id);
       return {
         ...state,
         tableLayout: {
@@ -197,6 +195,14 @@ function orderReducer(state, action) {
         ...state,
         orders: updatedOrders,
         orderHistory: [entry, ...state.orderHistory],
+        reportData: [entry, ...state.reportData],
+      };
+    }
+
+    case "CLEAR_HISTORY": {
+      return {
+        ...state,
+        orderHistory: [],
       };
     }
 
@@ -219,6 +225,10 @@ export function OrderProvider({ children }) {
   useEffect(() => {
     localStorage.setItem("orderHistory", JSON.stringify(state.orderHistory));
   }, [state.orderHistory]);
+
+  useEffect(() => {
+    localStorage.setItem("reportData", JSON.stringify(state.reportData));
+  }, [state.reportData]);
 
   return (
     <OrderContext.Provider value={{ ...state, dispatch }}>

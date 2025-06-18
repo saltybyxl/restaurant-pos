@@ -20,21 +20,21 @@ function formatDateInput(dateStr) {
 }
 
 export default function HistoryScreen() {
-  const { orderHistory } = useOrder();
+  const { orderHistory, reportData, dispatch } = useOrder();
   const [showReport, setShowReport] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [selectedTable, setSelectedTable] = useState("");
 
   const filteredOrders = useMemo(() => {
-    return orderHistory.filter((entry) => {
+    return reportData.filter((entry) => {
       const entryDate = new Date(entry.date);
       const matchFrom = fromDate ? entryDate >= new Date(fromDate) : true;
       const matchTo = toDate ? entryDate <= new Date(toDate) : true;
       const matchTable = selectedTable ? entry.table === selectedTable : true;
       return matchFrom && matchTo && matchTable;
     });
-  }, [orderHistory, fromDate, toDate, selectedTable]);
+  }, [reportData, fromDate, toDate, selectedTable]);
 
   const revenueByDate = useMemo(() => {
     const grouped = {};
@@ -58,7 +58,7 @@ export default function HistoryScreen() {
   const totalRevenue = filteredOrders.reduce((sum, e) => sum + e.total, 0);
   const totalTips = filteredOrders.reduce((sum, e) => sum + (e.tip || 0), 0);
 
-  const allTables = [...new Set(orderHistory.map((o) => o.table))];
+  const allTables = [...new Set(reportData.map((o) => o.table))];
 
   if (!showReport) {
     return (
@@ -93,13 +93,26 @@ export default function HistoryScreen() {
           </div>
         )}
 
-        <div className="flex justify-center">
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
           <button
             onClick={() => setShowReport(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
           >
             📊 View Reports
           </button>
+
+          {orderHistory.length > 0 && (
+            <button
+              onClick={() => {
+                if (confirm("Clear all visible order logs? This won't affect stats.")) {
+                  dispatch({ type: "CLEAR_HISTORY" });
+                }
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded shadow hover:bg-red-700"
+            >
+              🗑 Clear History
+            </button>
+          )}
         </div>
       </div>
     );

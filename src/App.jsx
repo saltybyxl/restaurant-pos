@@ -3,11 +3,15 @@ import TablesScreen from "./screens/TablesScreen";
 import MenuScreen from "./screens/MenuScreen";
 import OrdersScreen from "./screens/OrdersScreen";
 import HistoryScreen from "./screens/HistoryScreen";
+import MenuEditorScreen from "./screens/MenuEditorScreen"; // ✅ new
+
 import { OrderProvider, useOrder } from "./context/OrderContext";
+import { MenuProvider } from "./context/MenuContext"; // ✅ new
+
 import TabNavigation from "./components/TabNavigation";
 import { useSwipeable } from "react-swipeable";
 
-const tabs = ["tables", "menu", "orders", "history"];
+const tabs = ["tables", "menu", "orders", "history", "menueditor"]; // ✅ new tab
 
 function AppContent({ tab, setTab }) {
   const { editMode } = useOrder();
@@ -23,12 +27,14 @@ function AppContent({ tab, setTab }) {
   const currentIndex = tabs.indexOf(tab);
   const handlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (!editMode && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      const isInputFocused = document.activeElement.tagName === "INPUT";
+      if (!editMode && !isInputFocused && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         if (currentIndex < tabs.length - 1) setTab(tabs[currentIndex + 1]);
       }
     },
     onSwipedRight: (e) => {
-      if (!editMode && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      const isInputFocused = document.activeElement.tagName === "INPUT";
+      if (!editMode && !isInputFocused && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         if (currentIndex > 0) setTab(tabs[currentIndex - 1]);
       }
     },
@@ -43,6 +49,7 @@ function AppContent({ tab, setTab }) {
         {tab === "menu" && <MenuScreen />}
         {tab === "orders" && <OrdersScreen />}
         {tab === "history" && <HistoryScreen />}
+        {tab === "menueditor" && <MenuEditorScreen />} {/* ✅ new */}
       </div>
       <TabNavigation tab={tab} setTab={setTab} />
     </div>
@@ -54,7 +61,9 @@ function App() {
 
   return (
     <OrderProvider>
-      <AppContent tab={tab} setTab={setTab} />
+      <MenuProvider>
+        <AppContent tab={tab} setTab={setTab} />
+      </MenuProvider>
     </OrderProvider>
   );
 }

@@ -1,15 +1,30 @@
 import { useState, useRef, useEffect } from "react";
 import { useOrder } from "../context/OrderContext";
-import { foodMenu } from "../data/foodData";
-import { drinksMenu } from "../data/drinksData";
+import { useMenu } from "../context/MenuContext";
 
 export default function MenuScreen() {
   const { selectedTable, dispatch } = useOrder();
+  const { menu } = useMenu();
   const [activeTab, setActiveTab] = useState("food");
   const [searchTerm, setSearchTerm] = useState("");
   const [popupItem, setPopupItem] = useState(null);
   const containerRef = useRef(null);
   const [collapsedSections, setCollapsedSections] = useState({});
+
+  const foodMenu = menu.food || [];
+  const drinksMenu = menu.drinks || [];
+
+  const groupByCategory = (items) => {
+    const groups = {};
+    items.forEach((item) => {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push(item);
+    });
+    return Object.entries(groups).map(([category, items]) => ({ category, items }));
+  };
+
+  const groupedFood = groupByCategory(foodMenu);
+  const groupedDrinks = groupByCategory(drinksMenu);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -18,16 +33,16 @@ export default function MenuScreen() {
   }, [searchTerm]);
 
   useEffect(() => {
-    const combined = [...foodMenu, ...drinksMenu];
+    const combined = [...groupedFood, ...groupedDrinks];
     const initialState = Object.fromEntries(
       combined.map((sec) => [sec.category, true])
     );
     setCollapsedSections(initialState);
-  }, []);
+  }, [foodMenu, drinksMenu]);
 
   useEffect(() => {
     if (!searchTerm.trim()) return;
-    const combined = [...foodMenu, ...drinksMenu];
+    const combined = [...groupedFood, ...groupedDrinks];
     const lowerSearch = searchTerm.trim().toLowerCase();
     const autoExpand = {};
     combined.forEach((section) => {
@@ -39,7 +54,7 @@ export default function MenuScreen() {
       }
     });
     setCollapsedSections((prev) => ({ ...prev, ...autoExpand }));
-  }, [searchTerm]);
+  }, [searchTerm, foodMenu, drinksMenu]);
 
   const handleAddToOrder = (item, quantity, notes) => {
     if (!selectedTable) return;
@@ -63,28 +78,19 @@ export default function MenuScreen() {
   };
 
   const getDisplaySections = () => {
-    const combined = [...foodMenu, ...drinksMenu];
+    const currentMenu = activeTab === "food" ? groupedFood : groupedDrinks;
     const lowerSearch = searchTerm.trim().toLowerCase();
-    if (!lowerSearch) {
-      return activeTab === "food" ? foodMenu : drinksMenu;
-    }
-    const matchedSections = combined
+
+    if (!lowerSearch) return currentMenu;
+
+    return currentMenu
       .map((section) => {
         const filteredItems = section.items.filter((item) =>
           item.name.toLowerCase().includes(lowerSearch)
         );
-        if (filteredItems.length > 0) {
-          return { ...section, items: filteredItems };
-        }
-        return null;
+        return filteredItems.length > 0 ? { ...section, items: filteredItems } : null;
       })
-      .filter(Boolean); // Remove nulls safely
-
-    const uniqueSections = matchedSections.filter(
-      (sec, idx, arr) => arr.findIndex((s) => s.category === sec.category) === idx
-    );
-
-    return uniqueSections;
+      .filter(Boolean);
   };
 
   const displaySections = getDisplaySections();
@@ -130,14 +136,13 @@ export default function MenuScreen() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex justify-center gap-4 mb-4">
-        {["food", "drinks"].map((tab) => (
+        {['food', 'drinks'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1 rounded-full ${
-              activeTab === tab ? "bg-blue-600 text-white" : "bg-gray-200"
+              activeTab === tab ? 'bg-blue-600 text-white' : 'bg-gray-200'
             }`}
           >
             {tab.toUpperCase()}
@@ -145,19 +150,26 @@ export default function MenuScreen() {
         ))}
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        placeholder="Search items..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full mb-4 px-4 py-2 border rounded"
-      />
+      <div className="relative mb-4">
+        <input
+          type="text"
+          placeholder="Search items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-4 py-2 border rounded pr-10"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
-      {/* Render Sections */}
       {displaySections.map(renderSection)}
 
-      {/* Popup */}
       {popupItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded p-6 w-[90%] max-w-sm shadow-lg relative">
@@ -195,9 +207,7 @@ export default function MenuScreen() {
               </button>
               <button
                 onClick={() => {
-                  const qty = parseInt(
-                    document.getElementById("popup-qty").value
-                  );
+                  const qty = parseInt(document.getElementById("popup-qty").value);
                   const notes = document.getElementById("popup-notes").value;
                   if (qty > 0) {
                     handleAddToOrder(popupItem, qty, notes);
