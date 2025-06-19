@@ -2,15 +2,19 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const MenuContext = createContext();
 
+import { drinksMenu } from "../data/drinksData";
+import { foodMenu } from "../data/foodData";
+
+// Flatten the food and drinks into default flat array with name, price, category
+const flattenMenu = (menuArray) => {
+  return menuArray.flatMap((section) =>
+    section.items.map((item) => ({ ...item, category: section.category }))
+  );
+};
+
 const defaultMenu = {
-  food: [
-    { name: "Burger", price: 5.99, category: "Main" },
-    { name: "Fries", price: 2.99, category: "Sides" },
-  ],
-  drinks: [
-    { name: "Cola", price: 1.99, category: "Soft Drinks" },
-    { name: "Water", price: 0.99, category: "Soft Drinks" },
-  ],
+  food: flattenMenu(foodMenu),
+  drinks: flattenMenu(drinksMenu),
 };
 
 export function MenuProvider({ children }) {

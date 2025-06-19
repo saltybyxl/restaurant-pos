@@ -3,15 +3,15 @@ import TablesScreen from "./screens/TablesScreen";
 import MenuScreen from "./screens/MenuScreen";
 import OrdersScreen from "./screens/OrdersScreen";
 import HistoryScreen from "./screens/HistoryScreen";
-import MenuEditorScreen from "./screens/MenuEditorScreen"; // ✅ new
+import MenuEditorScreen from "./screens/MenuEditorScreen";
 
 import { OrderProvider, useOrder } from "./context/OrderContext";
-import { MenuProvider } from "./context/MenuContext"; // ✅ new
+import { MenuProvider } from "./context/MenuContext";
 
 import TabNavigation from "./components/TabNavigation";
 import { useSwipeable } from "react-swipeable";
 
-const tabs = ["tables", "menu", "orders", "history", "menueditor"]; // ✅ new tab
+const tabs = ["tables", "menu", "orders", "history", "menueditor"];
 
 function AppContent({ tab, setTab }) {
   const { editMode } = useOrder();
@@ -49,7 +49,7 @@ function AppContent({ tab, setTab }) {
         {tab === "menu" && <MenuScreen />}
         {tab === "orders" && <OrdersScreen />}
         {tab === "history" && <HistoryScreen />}
-        {tab === "menueditor" && <MenuEditorScreen />} {/* ✅ new */}
+        {tab === "menueditor" && <MenuEditorScreen />} {/* ✅ menu editor */}
       </div>
       <TabNavigation tab={tab} setTab={setTab} />
     </div>
