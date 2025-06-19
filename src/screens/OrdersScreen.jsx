@@ -1,162 +1,256 @@
-import { useOrder } from "../context/OrderContext";
 import { useState } from "react";
-import { formatKitchenOrder } from "../utils/formatKitchenOrder";
+import { useOrder } from "../context/OrderContext";
 
 export default function OrdersScreen() {
-  const { selectedTable, orders, dispatch } = useOrder();
-  const [tip, setTip] = useState("");
+  const {
+    selectedTable,
+    setSelectedTable,
+    orders,
+    removeItem,
+    updateItemQuantity,
+    clearTable,
+  } = useOrder();
 
-  const tableOrder = selectedTable
-    ? orders[selectedTable] || { items: [], tip: 0, status: "new" }
-    : { items: [] };
+  const activeTable = selectedTable || Object.keys(orders)[0];
+  const orderData = orders[activeTable] || { items: [] };
+  const orderItems = orderData.items || [];
 
-  const items = tableOrder.items || [];
 
-  const handleRemoveItem = (index) => {
-    dispatch({ type: "REMOVE_ITEM", table: selectedTable, index });
-  };
+  const [tipInput, setTipInput] = useState("");
+  const [editItemIndex, setEditItemIndex] = useState(null);
+  const [editQuantity, setEditQuantity] = useState(1);
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitCount, setSplitCount] = useState(2);
+  const [assigned, setAssigned] = useState({});
 
-  const handleClearOrder = () => {
-    if (confirm("Clear this order completely?")) {
-      dispatch({ type: "CLEAR_ORDER", table: selectedTable });
-    }
-  };
-
-  const handleSendToKitchen = () => {
-    const kitchenItems = items.map((item) => ({
-      name: item.name,
-      quantity: item.quantity,
-      notes: item.notes,
-    }));
-
-    const textToPrint = formatKitchenOrder(selectedTable, kitchenItems);
-    console.log("🧾 Kitchen Print Preview:\n" + textToPrint);
-
-    dispatch({ type: "SEND_TO_KITCHEN", table: selectedTable });
-
-    alert("✅ Sent to kitchen (see console)");
-  };
-
-  const handlePrint = () => {
-    alert("🖨️ Print Receipt (not implemented yet)");
-  };
-
-  const handleMarkAsPaid = () => {
-    if (!selectedTable || items.length === 0) return;
-
-    const confirmed = confirm("Mark this order as paid?");
-    if (!confirmed) return;
-
-    dispatch({
-      type: "MARK_AS_PAID",
-      table: selectedTable,
-      tip: parseFloat(tip) || 0,
-    });
-
-    setTip("");
-    alert("✅ Order marked as paid and saved to history");
-  };
-
-  const total = items.reduce(
+  const total = orderItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+  const tip = parseFloat(tipInput) || 0;
+  const grandTotal = total + tip;
+
+  const handleOpenEdit = (index) => {
+    setEditItemIndex(index);
+    setEditQuantity(orderItems[index].quantity);
+  };
+
+  const handleUpdate = () => {
+    updateItemQuantity(activeTable, editItemIndex, editQuantity);
+    setEditItemIndex(null);
+  };
+
+  const handleRemove = () => {
+    removeItem(activeTable, editItemIndex);
+    setEditItemIndex(null);
+  };
+
+  const handleSplitBill = () => {
+    setSplitMode(true);
+  };
+
+  const getSplitSummary = () => {
+    const splitTotals = Array(splitCount).fill(0);
+    orderItems.forEach((item, index) => {
+      const guest = assigned[index];
+      if (guest !== undefined) {
+        splitTotals[guest] += item.price * item.quantity;
+      }
+    });
+    return splitTotals.map((amount) => amount + tip / splitCount);
+  };
 
   return (
-    <div className="p-4 pb-32">
-      {!selectedTable ? (
+    <div className="p-4 pb-24">
+      <h2 className="text-lg font-bold mb-4">🧾 Current Order</h2>
+
+      {!activeTable ? (
         <div className="text-center text-red-600 font-semibold">
-          Please select a table first.
+          No table selected and no orders found.
         </div>
+      ) : orderItems.length === 0 ? (
+        <div className="text-center text-gray-600">No items yet.</div>
       ) : (
         <>
-          <h2 className="text-lg font-bold mb-4">
-            Order for <span className="text-blue-600">{selectedTable}</span>
-          </h2>
-
-          {items.length === 0 ? (
-            <div className="text-gray-500 text-center">No items added yet.</div>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white rounded shadow p-3 flex justify-between items-start"
-                >
-                  <div>
-                    <div className="font-semibold">
-                      {item.quantity} × {item.name}
-                    </div>
-                    {item.notes && (
-                      <div className="text-sm text-gray-600">
-                        Notes: {item.notes}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm">
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </div>
-                    <button
-                      onClick={() => handleRemoveItem(idx)}
-                      className="text-xs text-red-500 hover:underline mt-1"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Totals */}
-              <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between font-bold">
-                  <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Tip:
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Optional"
-                    value={tip}
-                    onChange={(e) => setTip(e.target.value)}
-                    className="w-full border px-2 py-1 rounded"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2 pt-4">
-                <button
-                  onClick={handleSendToKitchen}
-                  className="bg-orange-600 text-white py-2 rounded hover:bg-orange-700"
-                >
-                  Send to Kitchen
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                >
-                  Print Receipt
-                </button>
-                <button
-                  onClick={handleMarkAsPaid}
-                  className="bg-green-600 text-white py-2 rounded hover:bg-green-700"
-                >
-                  ✅ Mark as Paid
-                </button>
-                <button
-                  onClick={handleClearOrder}
-                  className="bg-gray-300 text-gray-800 py-2 rounded hover:bg-gray-400"
-                >
-                  Clear Order
-                </button>
-              </div>
+          {Object.keys(orders).length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm mb-1">Select Table:</label>
+              <select
+                value={activeTable}
+                onChange={(e) => setSelectedTable(e.target.value)}
+                className="border rounded px-3 py-1 w-full"
+              >
+                {Object.keys(orders).map((tableName) => (
+                  <option key={tableName} value={tableName}>
+                    {tableName}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
+
+          <ul className="space-y-2 mb-4">
+            {orderItems.map((item, index) => (
+              <li
+                key={index}
+                className="bg-white rounded p-3 shadow hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleOpenEdit(index)}
+              >
+                <div className="flex justify-between font-medium">
+                  <span>{item.name}</span>
+                  <span>
+                    x{item.quantity} • €{(item.price * item.quantity).toFixed(2)}
+                  </span>
+                </div>
+                {item.notes && (
+                  <div className="text-xs text-gray-500 mt-1">📝 {item.notes}</div>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mb-4">
+            <label className="block text-sm mb-1">Tip:</label>
+            <input
+              type="number"
+              value={tipInput}
+              onChange={(e) => setTipInput(e.target.value)}
+              placeholder="0.00"
+              className="w-full border rounded px-3 py-1"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 mb-4">
+            <button
+              onClick={handleSplitBill}
+              className="w-full bg-purple-600 text-white py-2 rounded shadow hover:bg-purple-700"
+            >
+              🧮 Split Bill
+            </button>
+          </div>
+
+          <div className="text-right font-bold text-lg mb-4">
+            Total: €{grandTotal.toFixed(2)}
+          </div>
+
+          <button
+            onClick={() => {
+              clearTable(activeTable, tip);
+              setTipInput("");
+            }}
+            className="w-full bg-green-600 text-white py-3 rounded shadow hover:bg-green-700"
+          >
+            ✅ Paid & Clear Table
+          </button>
         </>
+      )}
+
+      {/* Edit Popup */}
+      {editItemIndex !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded p-6 w-[90%] max-w-sm shadow-lg relative space-y-4">
+            <h2 className="text-lg font-bold mb-2">Edit Item</h2>
+            <p className="text-sm text-gray-600">
+              {orderItems[editItemIndex]?.name}
+            </p>
+
+            <label className="block">
+              Quantity:
+              <input
+                type="number"
+                min="1"
+                value={editQuantity}
+                onChange={(e) =>
+                  setEditQuantity(parseInt(e.target.value) || 1)
+                }
+                className="w-full border rounded px-2 py-1 mt-1"
+              />
+            </label>
+
+            <div className="flex justify-between gap-2 mt-4">
+              <button
+                onClick={() => setEditItemIndex(null)}
+                className="flex-1 bg-gray-300 rounded py-2 hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemove}
+                className="flex-1 bg-red-500 text-white rounded py-2 hover:bg-red-600"
+              >
+                🗑 Remove
+              </button>
+              <button
+                onClick={handleUpdate}
+                className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Split Bill Modal */}
+      {splitMode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
+            <h2 className="text-lg font-bold mb-4">Split Bill</h2>
+            <label className="block mb-2">
+              Number of Guests:
+              <input
+                type="number"
+                min="1"
+                value={splitCount}
+                onChange={(e) => setSplitCount(parseInt(e.target.value) || 1)}
+                className="w-full border rounded px-2 py-1"
+              />
+            </label>
+
+            <div className="text-sm text-gray-600 mb-3">Assign items to guests:</div>
+            <ul className="space-y-2 mb-4">
+              {orderItems.map((item, index) => (
+                <li key={index} className="flex justify-between items-center">
+                  <span className="text-sm">
+                    {item.name} (x{item.quantity})
+                  </span>
+                  <select
+                    value={assigned[index] ?? ""}
+                    onChange={(e) =>
+                      setAssigned({ ...assigned, [index]: parseInt(e.target.value) })
+                    }
+                    className="border rounded px-2 py-1 text-sm"
+                  >
+                    <option value="">-- Guest --</option>
+                    {Array.from({ length: splitCount }).map((_, i) => (
+                      <option key={i} value={i}>
+                        Guest {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </ul>
+
+            <div className="text-sm font-medium mb-3">Split Totals:</div>
+            <ul className="text-sm space-y-1 mb-4">
+              {getSplitSummary().map((amount, i) => (
+                <li key={i}>
+                  💳 Guest {i + 1}: €{amount.toFixed(2)}
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setSplitMode(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

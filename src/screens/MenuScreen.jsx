@@ -136,6 +136,17 @@ export default function MenuScreen() {
         </div>
       )}
 
+      {selectedTable && (
+        <div className="text-right mb-2">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('setTab', { detail: 'menueditor' }))}
+            className="bg-yellow-500 text-white text-xs px-3 py-1 rounded shadow hover:bg-yellow-600"
+          >
+            ✏️ Edit Menu
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-center gap-4 mb-4">
         {['food', 'drinks'].map((tab) => (
           <button

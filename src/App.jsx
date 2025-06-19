@@ -59,6 +59,12 @@ function AppContent({ tab, setTab }) {
 function App() {
   const [tab, setTab] = useState("tables");
 
+  useEffect(() => {
+    const handler = (e) => setTab(e.detail);
+    window.addEventListener("setTab", handler);
+    return () => window.removeEventListener("setTab", handler);
+  }, []);
+
   return (
     <OrderProvider>
       <MenuProvider>
