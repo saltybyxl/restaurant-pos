@@ -213,6 +213,9 @@ function orderReducer(state, action) {
 
 export function OrderProvider({ children }) {
   const [state, dispatch] = useReducer(orderReducer, getInitialState());
+  const clearTable = (table, tip = 0) => {
+  dispatch({ type: "MARK_AS_PAID", table, tip });
+};
 
   useEffect(() => {
     localStorage.setItem("tableLayout", JSON.stringify(state.tableLayout));
@@ -231,7 +234,7 @@ export function OrderProvider({ children }) {
   }, [state.reportData]);
 
   return (
-    <OrderContext.Provider value={{ ...state, dispatch }}>
+    <OrderContext.Provider value={{ ...state, dispatch, clearTable }}>
       {children}
     </OrderContext.Provider>
   );
